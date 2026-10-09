@@ -1,0 +1,32 @@
+:root { --ink: #17352e; --mint: #b8f0ce; }
+.stApp { background: #f5f7f4; }
+.block-container { max-width: 1180px; padding-top: 2rem; padding-bottom: 4rem; }
+h1, h2, h3 { letter-spacing: -0.035em; }
+.hero { background: linear-gradient(125deg, #153d32, #244f45); color: #fff;
+  padding: 2.8rem 3rem; border-radius: 24px; margin-bottom: 1.8rem;
+  box-shadow: 0 14px 35px #153d3214; }
+.hero h1 { color: #fff; font-size: clamp(2rem, 4vw, 3.4rem); line-height: 1.12;
+  font-weight: 650; margin: .9rem 0 1rem; padding: 0; }
+.hero p { color: #d5e6df; font-size: 1.04rem; max-width: 38rem; }
+.eyebrow { font-size: .73rem; letter-spacing: .12em; font-weight: 700; color: #436f5e; }
+.hero .eyebrow { color: var(--mint); }
+.steps { display: flex; gap: .65rem; flex-wrap: wrap; margin-top: 1.8rem; }
+.steps span { background: #ffffff12; border: 1px solid #ffffff30; border-radius: 30px;
+  padding: .45rem 1rem; font-size: .8rem; color: #edf7f0; }
+[data-testid="stSidebar"] { background: #eaf0ea; border-right: 1px solid #dce5dc; }
+[data-testid="stVerticalBlockBorderWrapper"] > div { border-radius: 16px; }
+[data-testid="stMetric"] { border: 1px solid #dce5dc; border-radius: 14px;
+  background: #ffffffb8; padding: .8rem 1rem; }
+[data-testid="stMetricLabel"] { color: #53685e; }
+[data-testid="stMetricValue"] { font-size: 1.8rem; color: var(--ink); }
+.role-title { font-size: 1.4rem !important; margin: .35rem 0 !important; padding: 0 !important; }
+.role-meta { font-size: .9rem; color: #53685e; margin-bottom: .5rem; }
+.tier-row { display: flex; flex-wrap: wrap; gap: .5rem; margin: .2rem 0 .85rem; }
+.tier-row span { background: #e9f2ec; border: 1px solid #d7e5dc; color: #365448;
+  border-radius: 30px; padding: .35rem .75rem; font-size: .78rem; }
+.tier-row b { margin-left: .3rem; }
+.stButton button, .stDownloadButton button { border-radius: 9px; }
+@media (max-width: 640px) {
+  .hero { padding: 1.6rem; border-radius: 16px; }
+  .block-container { padding: 1rem; }
+}

@@ -1,0 +1,10 @@
+.env
+.env.*
+!.env.example
+.venv/
+__pycache__/
+matched_jobs*.csv
+data/*
+!data/.gitkeep
+graphify-out/
+.streamlit/secrets.toml
