@@ -59,6 +59,24 @@ class FilterJobsTest(unittest.TestCase):
                     result(0, 80, **{field: invalid})
         self.assertEqual(app.shortlist([], [], 75), [])
 
+    def test_visa_sponsorship_signal(self):
+        self.assertEqual(app.visa_sponsorship_status({"description": "We offer visa sponsorship for this role."}), "yes")
+        self.assertEqual(app.visa_sponsorship_status({"description": "Candidates must already have work authorization; we cannot sponsor visas."}), "no")
+        self.assertEqual(app.visa_sponsorship_status({"description": "Python and SQL"}), "unknown")
+
+        assessments = [
+            result(0, 90, company=3, pay=2, benefits=2),
+            result(1, 95, company=3, pay=2, benefits=2),
+            result(2, 99, company=3, pay=2, benefits=2),
+        ]
+        jobs = [
+            {"title": "sponsored", "description": "Visa sponsorship available."},
+            {"title": "no", "description": "Must already have work authorization; no visa sponsorship."},
+            {"title": "unknown", "description": "Distributed systems role."},
+        ]
+        self.assertEqual([m["title"] for m in app.shortlist(jobs, assessments, 75)],
+                         ["sponsored", "unknown", "no"])
+
     def test_batch_indexes_and_score_validation(self):
         batch = [(0, {"title": "Engineer"}), (1, {"title": "Developer"})]
         valid = [result(1, 80), result(0, 90)]

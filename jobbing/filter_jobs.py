@@ -98,6 +98,18 @@ EXTRA_COLUMNS = [
     "llm_company_score", "llm_pay_score", "llm_benefits_score", "llm_preference_reason",
 ]
 
+SPONSORSHIP_YES = (
+    "visa sponsorship", "visa support", "work visa support", "sponsorship available",
+    "sponsorship provided", "can sponsor", "will sponsor", "we sponsor", "relocation and visa",
+)
+SPONSORSHIP_NO = (
+    "no visa sponsorship", "cannot sponsor", "can not sponsor", "unable to sponsor",
+    "will not sponsor", "won't sponsor", "do not sponsor", "does not sponsor",
+    "no sponsorship", "without sponsorship", "must already have work authorization",
+    "must have work authorization", "must have the right to work",
+    "must be authorized to work", "existing work authorization",
+)
+
 
 def read_resume(path):
     """Read Word paragraphs, including table cells, without a DOCX dependency."""
@@ -151,14 +163,25 @@ def assess_batch(client, model, resume, indexed_jobs):
     return assessments
 
 
+def visa_sponsorship_status(job):
+    text = " ".join(str(job.get(field, "")) for field in
+                    ("description", "llm_preference_reason", "llm_reason")).casefold()
+    if any(phrase in text for phrase in SPONSORSHIP_NO):
+        return "no"
+    if any(phrase in text for phrase in SPONSORSHIP_YES):
+        return "yes"
+    return "unknown"
+
+
 def shortlist(jobs, assessments, min_score):
     selected = []
     # Lexicographic tiers: benefits cannot outweigh company or pay preferences.
-    # Unknown tiers sort last within an otherwise equal preference group.
+    # Explicit sponsorship is bonus within otherwise equal tiers. Unknown stays neutral.
     for result in sorted(assessments, key=lambda item: (
         item.company_score if item.company_score is not None else -1,
         item.pay_score if item.pay_score is not None else -1,
         item.benefits_score if item.benefits_score is not None else -1,
+        1 if visa_sponsorship_status(jobs[item.row_index]) == "yes" else 0,
         item.match_score,
     ), reverse=True):
         if result.match_score < min_score or result.hard_blockers:

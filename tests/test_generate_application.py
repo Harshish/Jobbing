@@ -151,9 +151,8 @@ class ApplicationWebTests(unittest.TestCase):
             at = AppTest.from_file(str(APP), default_timeout=20).run()
             key = f"generate:{matches}:1"
             self.assertFalse(at.exception)
-            self.assertTrue(at.button(key=key).disabled)
+            self.assertFalse(at.button(key=key).disabled)
             client.assert_not_called()
-            at.checkbox(key="llm_consent").check().run()
             at.checkbox(key="include_letter").check().run()
             at.button(key=key).click().run()
             self.assertFalse(at.exception)

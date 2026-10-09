@@ -21,6 +21,11 @@ h1, h2, h3 { letter-spacing: -0.035em; }
 [data-testid="stMetricValue"] { font-size: 1.8rem; color: var(--ink); }
 .role-title { font-size: 1.4rem !important; margin: .35rem 0 !important; padding: 0 !important; }
 .role-meta { font-size: .9rem; color: #53685e; margin-bottom: .5rem; }
+.pill-row { display: flex; flex-wrap: wrap; gap: .45rem; margin: 0 0 .55rem; }
+.pill { background: #f4f6f4; border: 1px solid #d7e5dc; color: #4d6359;
+  border-radius: 999px; padding: .28rem .72rem; font-size: .75rem; font-weight: 600; }
+.pill-positive { background: #e7f6ec; border-color: #b9dfc3; color: #25563f; }
+.pill-muted { background: #f3f0ed; border-color: #ddd4ce; color: #6a5d53; }
 .tier-row { display: flex; flex-wrap: wrap; gap: .5rem; margin: .2rem 0 .85rem; }
 .tier-row span { background: #e9f2ec; border: 1px solid #d7e5dc; color: #365448;
   border-radius: 30px; padding: .35rem .75rem; font-size: .78rem; }

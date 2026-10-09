@@ -31,8 +31,8 @@ Scraping may be slow, rate-limited, or return fewer jobs than requested. Follow 
 ### 2. Match
 
 Use `data/resume.docx` or upload a different DOCX in the sidebar. Set the model,
-minimum resume-fit score, and jobs per batch. Confirm the data-sharing checkbox, then
-click **Match & rank jobs**. A progress bar updates after every completed LLM batch.
+minimum resume-fit score, and jobs per batch, then click **Match & rank jobs**.
+A progress bar updates after every completed LLM batch.
 
 Running sends the full resume text (including contact details) and job data to the
 configured provider and incurs API charges. Remove unwanted personal details from
@@ -57,7 +57,7 @@ match, or document-generation button.
 
 Each role card has a **Create resume** button. Enable **Include a motivation letter**
 above the cards to generate both documents in one request. Use the original resume
-selected in the sidebar and check the data-sharing consent in step 2. This works
+selected in the sidebar. This works
 with previously saved shortlists; you do not need to scrape or match again.
 
 The generator uses the original DOCX text plus that job's description, not a prior

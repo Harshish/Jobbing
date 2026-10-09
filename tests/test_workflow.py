@@ -96,8 +96,6 @@ class WebTests(unittest.TestCase):
             next(button for button in at.button if button.label == "Find jobs").click().run()
             self.assertFalse(at.exception)
             self.assertEqual(scraper.call_count, 1)
-            self.assertTrue(at.button(key="run_filter").disabled)  # Explicit privacy consent required.
-            at.checkbox(key="llm_consent").check().run()
             self.assertFalse(at.button(key="run_filter").disabled)
             at.button(key="run_filter").click().run()
             self.assertFalse(at.exception)
@@ -137,7 +135,6 @@ class WebTests(unittest.TestCase):
             self.assertFalse(at.exception)
 
             llm.return_value.__enter__.side_effect = RuntimeError("Provider offline")
-            at.checkbox(key="llm_consent").check().run()
             at.button(key="run_filter").click().run()
             self.assertFalse(at.exception)
             self.assertTrue(any("Provider offline" in error.value for error in at.error))

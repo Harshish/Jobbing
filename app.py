@@ -13,7 +13,7 @@ import pandas as pd
 import streamlit as st
 
 from jobbing import DATA, ROOT
-from jobbing.filter_jobs import read_jobs, run_filter
+from jobbing.filter_jobs import read_jobs, run_filter, visa_sponsorship_status
 from jobbing.job_scrape import run_scrape
 from jobbing.generate_application import generate_application, job_folder_name
 
@@ -57,6 +57,15 @@ def salary_label(job):
 
 def tier(value):
     return f"{value}/3" if value not in (None, "") else "Unknown"
+
+
+def visa_pill(job):
+    status = visa_sponsorship_status(job)
+    if status == "yes":
+        return '<span class="pill pill-positive">Visa sponsorship</span>'
+    if status == "no":
+        return '<span class="pill pill-muted">No visa sponsorship</span>'
+    return '<span class="pill">Visa unknown</span>'
 
 
 def render_application_actions(job, widget_key, resume_source, model, enabled, include_letter):
@@ -104,7 +113,7 @@ def render_application_actions(job, widget_key, resume_source, model, enabled, i
 
 def render_results(resume_source, model, generation_enabled):
     st.header("03 / Your shortlist")
-    st.caption("Company → pay → benefits → resume fit. Unknown does not mean bad.")
+    st.caption("Company → pay → benefits → visa-support bonus → resume fit. Unknown does not mean bad.")
     paths = [None, *map(str, saved_files("matched_jobs*.csv"))]
     if "match_path" not in st.session_state:
         st.session_state.match_path = paths[1] if len(paths) > 1 else None
@@ -141,8 +150,7 @@ def render_results(resume_source, model, generation_enabled):
     st.markdown("**Tailored application drafts**")
     include_letter = st.checkbox("Include a motivation letter when creating a resume", key="include_letter")
     st.caption("Uses the original resume selected in the sidebar and the current LLM model. "
-               "Enable data-sharing consent in step 2 to create drafts. Each click incurs an API call. "
-               "ATS-friendly formatting is not a guaranteed ATS score.")
+               "Each click incurs an API call. ATS-friendly formatting is not a guaranteed ATS score.")
 
     search_col, score_col, remote_col = st.columns([3, 2, 1])
     query = search_col.text_input("Search roles, companies or locations", key="search_results").strip().casefold()
@@ -171,7 +179,8 @@ def render_results(resume_source, model, generation_enabled):
                         f'<div class="eyebrow">#{rank:02d} · {escape(job.get("company") or "Company undisclosed")}</div>'
                         f'<h3 class="role-title">{escape(job.get("title") or "Untitled role")}</h3>'
                         f'<div class="role-meta">{escape(job.get("location") or "Location unspecified")}'
-                        f' · {escape(job.get("job_type") or "Type unspecified")}</div>',
+                        f' · {escape(job.get("job_type") or "Type unspecified")}</div>'
+                        f'<div class="pill-row">{visa_pill(job)}</div>',
                         unsafe_allow_html=True,
                     )
                 right.metric("Resume fit", f"{job['llm_match_score']}/100")
@@ -243,7 +252,7 @@ def main():
         else:
             st.warning("Set OPENAI_API_KEY in the project .env, then restart the app.")
         st.divider()
-        st.markdown("**Your priorities**\n\n01 · Large, established companies\n\n02 · Decent pay for your experience\n\n03 · Better benefits")
+        st.markdown("**Your priorities**\n\n01 · Large, established companies\n\n02 · Decent pay for your experience\n\n03 · Better benefits\n\n04 · Visa sponsorship is big plus")
         st.caption("Local, single-user workspace. Your API key is never displayed.")
 
     st.markdown('''<section class="hero"><div class="eyebrow">LESS NOISE. BETTER OPPORTUNITIES.</div>
@@ -298,9 +307,7 @@ def main():
     with st.container(border=True):
         st.header("02 / Find your fit")
         st.write("Compare each role with your resume, then rank the matches around your priorities.")
-        consent = st.checkbox("I agree to send my resume text and job listings to the configured LLM provider. API charges apply.",
-                              key="llm_consent")
-        ready = bool(jobs and key_ready and model.strip() and (upload or resume_path.exists()) and consent)
+        ready = bool(jobs and key_ready and model.strip() and (upload or resume_path.exists()))
         if st.button("Match & rank jobs", type="primary", disabled=not ready, key="run_filter"):
             st.session_state.match_path = None
             with st.status("Reading your resume…", expanded=True) as status:
@@ -324,7 +331,7 @@ def main():
                     st.error(f"Could not finish matching: {exc}. No new shortlist is selected; previous files are preserved.")
         st.caption("Runs only when you click. Display filters and page changes never trigger API calls.")
 
-    generation_enabled = bool(key_ready and model.strip() and (upload or resume_path.exists()) and consent)
+    generation_enabled = bool(key_ready and model.strip() and (upload or resume_path.exists()))
     render_results(upload.getvalue() if upload else resume_path, model.strip(), generation_enabled)
 
 
