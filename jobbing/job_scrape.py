@@ -9,26 +9,40 @@ from jobspy import scrape_jobs
 from jobbing import DATA
 
 
-def run_scrape(output_path, *, search_term="software engineer",
-               location="Amsterdam, Netherlands", results_wanted=50, hours_old=24):
+def run_scrape(
+    output_path,
+    *,
+    search_term="software engineer",
+    location="Amsterdam, Netherlands",
+    results_wanted=100,
+    hours_old=24,
+):
     output_path = Path(output_path)
     if not search_term.strip() or not location.strip():
         raise ValueError("Search term and location are required.")
     if not 1 <= results_wanted <= 500 or not 1 <= hours_old <= 720:
         raise ValueError("Use 1-500 results and a posting age of 1-720 hours.")
     if output_path.exists():
-        raise ValueError(f"Output already exists: {output_path}. Choose a new --output path.")
+        raise ValueError(
+            f"Output already exists: {output_path}. Choose a new --output path."
+        )
     if not output_path.parent.is_dir():
         raise ValueError(f"Output directory does not exist: {output_path.parent}")
 
     jobs = scrape_jobs(
-        site_name=["linkedin"], search_term=search_term.strip(), location=location.strip(),
-        results_wanted=results_wanted, hours_old=hours_old, fetch_description=True,
+        site_name=["linkedin"],
+        search_term=search_term.strip(),
+        location=location.strip(),
+        results_wanted=results_wanted,
+        hours_old=hours_old,
+        fetch_description=True,
     )
     # JobSpy can return an empty frame without columns. Save a valid empty CSV,
     # never silently reuse jobs from an earlier search.
     if jobs.empty:
-        jobs = jobs.reindex(columns=list(dict.fromkeys([*jobs.columns, "title", "description"])))
+        jobs = jobs.reindex(
+            columns=list(dict.fromkeys([*jobs.columns, "title", "description"]))
+        )
     elif not {"title", "description"}.issubset(jobs.columns):
         raise ValueError("Scraper returned an unexpected schema; no CSV was written.")
     with output_path.open("x", newline="", encoding="utf-8-sig") as handle:
@@ -45,8 +59,13 @@ def main():
     parser.add_argument("--output", type=Path, default=DATA / "jobs.csv")
     args = parser.parse_args()
     try:
-        count = run_scrape(args.output, search_term=args.search, location=args.location,
-                           results_wanted=args.results, hours_old=args.hours_old)
+        count = run_scrape(
+            args.output,
+            search_term=args.search,
+            location=args.location,
+            results_wanted=args.results,
+            hours_old=args.hours_old,
+        )
     except (OSError, ValueError) as exc:
         parser.error(str(exc))
     print(f"Saved {count} jobs to {args.output}")
