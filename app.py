@@ -13,7 +13,12 @@ import pandas as pd
 import streamlit as st
 
 from jobbing import DATA, ROOT
-from jobbing.filter_jobs import read_jobs, run_filter, visa_sponsorship_status
+from jobbing.filter_jobs import (
+    employment_type_status,
+    read_jobs,
+    run_filter,
+    visa_sponsorship_status,
+)
 from jobbing.job_scrape import run_scrape
 from jobbing.generate_application import generate_application, job_folder_name
 
@@ -68,6 +73,16 @@ def visa_pill(job):
     return '<span class="pill">Visa unknown</span>'
 
 
+def employment_type_pill(job):
+    label = (job.get("job_type") or job.get("employment_type") or "").strip()
+    status = employment_type_status(job)
+    if status == "full_time":
+        return '<span class="pill pill-positive">Full-time</span>'
+    if label:
+        return f'<span class="pill pill-muted">{escape(label)}</span>'
+    return '<span class="pill">Type unknown</span>'
+
+
 def render_application_actions(job, widget_key, resume_source, model, enabled, include_letter):
     label = "Create resume + letter" if include_letter else "Create resume"
     if st.button(label, key=f"generate:{widget_key}", disabled=not enabled):
@@ -113,7 +128,7 @@ def render_application_actions(job, widget_key, resume_source, model, enabled, i
 
 def render_results(resume_source, model, generation_enabled):
     st.header("03 / Your shortlist")
-    st.caption("Company → pay → benefits → visa-support bonus → resume fit. Unknown does not mean bad.")
+    st.caption("Full-time → company → pay → benefits → visa-support bonus → resume fit. Unknown does not mean bad.")
     paths = [None, *map(str, saved_files("matched_jobs*.csv"))]
     if "match_path" not in st.session_state:
         st.session_state.match_path = paths[1] if len(paths) > 1 else None
@@ -178,9 +193,8 @@ def render_results(resume_source, model, generation_enabled):
                     st.markdown(
                         f'<div class="eyebrow">#{rank:02d} · {escape(job.get("company") or "Company undisclosed")}</div>'
                         f'<h3 class="role-title">{escape(job.get("title") or "Untitled role")}</h3>'
-                        f'<div class="role-meta">{escape(job.get("location") or "Location unspecified")}'
-                        f' · {escape(job.get("job_type") or "Type unspecified")}</div>'
-                        f'<div class="pill-row">{visa_pill(job)}</div>',
+                        f'<div class="role-meta">{escape(job.get("location") or "Location unspecified")}</div>'
+                        f'<div class="pill-row">{employment_type_pill(job)}{visa_pill(job)}</div>',
                         unsafe_allow_html=True,
                     )
                 right.metric("Resume fit", f"{job['llm_match_score']}/100")
@@ -252,7 +266,7 @@ def main():
         else:
             st.warning("Set OPENAI_API_KEY in the project .env, then restart the app.")
         st.divider()
-        st.markdown("**Your priorities**\n\n01 · Large, established companies\n\n02 · Decent pay for your experience\n\n03 · Better benefits\n\n04 · Visa sponsorship is big plus")
+        st.markdown("**Your priorities**\n\n01 · Full-time employment first\n\n02 · Large, established companies\n\n03 · Decent pay for your experience\n\n04 · Better benefits\n\n05 · Visa sponsorship is big plus")
         st.caption("Local, single-user workspace. Your API key is never displayed.")
 
     st.markdown('''<section class="hero"><div class="eyebrow">LESS NOISE. BETTER OPPORTUNITIES.</div>

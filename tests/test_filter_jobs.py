@@ -3,7 +3,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from zipfile import ZipFile
 
 from jobbing import filter_jobs as app
@@ -77,6 +77,25 @@ class FilterJobsTest(unittest.TestCase):
         self.assertEqual([m["title"] for m in app.shortlist(jobs, assessments, 75)],
                          ["sponsored", "unknown", "no"])
 
+    def test_full_time_signal_and_sorting(self):
+        self.assertEqual(app.employment_type_status({"job_type": "Full-time"}), "full_time")
+        self.assertEqual(app.employment_type_status({"employment_type": "Permanent"}), "full_time")
+        self.assertEqual(app.employment_type_status({"job_type": "Contract"}), "other")
+        self.assertEqual(app.employment_type_status({}), "unknown")
+
+        assessments = [
+            result(0, 99, company=3, pay=2, benefits=2),
+            result(1, 80, company=3, pay=2, benefits=2),
+            result(2, 90, company=3, pay=2, benefits=2),
+        ]
+        jobs = [
+            {"title": "contract", "job_type": "Contract"},
+            {"title": "full", "job_type": "Full-time"},
+            {"title": "unknown"},
+        ]
+        self.assertEqual([m["title"] for m in app.shortlist(jobs, assessments, 75)],
+                         ["full", "contract", "unknown"])
+
     def test_batch_indexes_and_score_validation(self):
         batch = [(0, {"title": "Engineer"}), (1, {"title": "Developer"})]
         valid = [result(1, 80), result(0, 90)]
@@ -87,6 +106,17 @@ class FilterJobsTest(unittest.TestCase):
                 app.assess_batch(fake_client(invalid), "fake", "resume", batch)
         with self.assertRaises(ValueError):
             result(0, 101)
+
+    def test_reasoning_effort_forwarded(self):
+        assessment = result(0, 85)
+        message = SimpleNamespace(refusal=None, parsed=app.BatchResult(assessments=[assessment]))
+        response = SimpleNamespace(choices=[SimpleNamespace(message=message)])
+        parse = Mock(return_value=response)
+        client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(parse=parse)))
+
+        self.assertEqual(app.assess_batch(client, "fake", "resume", [(0, {"title": "Engineer"})],
+                                          reasoning_effort="low"), [assessment])
+        self.assertEqual(parse.call_args.kwargs["reasoning_effort"], "low")
 
     def test_offline_pipeline_and_overwrite_protection(self):
         with TemporaryDirectory() as folder:

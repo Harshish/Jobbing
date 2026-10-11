@@ -109,6 +109,7 @@ SPONSORSHIP_NO = (
     "must have work authorization", "must have the right to work",
     "must be authorized to work", "existing work authorization",
 )
+FULL_TIME_YES = ("full time", "full-time", "permanent")
 
 
 def read_resume(path):
@@ -141,18 +142,21 @@ def read_jobs(path, *, allow_assessed=False):
     return columns, jobs
 
 
-def assess_batch(client, model, resume, indexed_jobs):
-    response = client.chat.completions.parse(
-        model=model,
-        messages=[
+def assess_batch(client, model, resume, indexed_jobs, *, reasoning_effort=None):
+    request = {
+        "model": model,
+        "messages": [
             {"role": "system", "content": PROMPT},
             {"role": "user", "content": json.dumps({
                 "resume": resume,
                 "jobs": [{"row_index": index, "job": job} for index, job in indexed_jobs],
             }, ensure_ascii=False)},
         ],
-        response_format=BatchResult,
-    )
+        "response_format": BatchResult,
+    }
+    if reasoning_effort:
+        request["reasoning_effort"] = reasoning_effort
+    response = client.chat.completions.parse(**request)
     message = response.choices[0].message
     if message.refusal or message.parsed is None:
         raise ValueError("LLM refused the request or returned no structured assessment.")
@@ -173,11 +177,23 @@ def visa_sponsorship_status(job):
     return "unknown"
 
 
+def employment_type_status(job):
+    text = " ".join(str(job.get(field, "")) for field in
+                    ("job_type", "employment_type")).casefold().strip()
+    if not text:
+        return "unknown"
+    if any(phrase in text for phrase in FULL_TIME_YES):
+        return "full_time"
+    return "other"
+
+
 def shortlist(jobs, assessments, min_score):
     selected = []
-    # Lexicographic tiers: benefits cannot outweigh company or pay preferences.
-    # Explicit sponsorship is bonus within otherwise equal tiers. Unknown stays neutral.
+    # Full-time roles first. Then lexicographic tiers: benefits cannot outweigh
+    # company or pay preferences. Explicit sponsorship is bonus within otherwise
+    # equal tiers. Unknown stays neutral.
     for result in sorted(assessments, key=lambda item: (
+        1 if employment_type_status(jobs[item.row_index]) == "full_time" else 0,
         item.company_score if item.company_score is not None else -1,
         item.pay_score if item.pay_score is not None else -1,
         item.benefits_score if item.benefits_score is not None else -1,
@@ -201,12 +217,15 @@ def shortlist(jobs, assessments, min_score):
 
 
 def run_filter(resume_path, jobs_path, output_path, *, model=None, min_score=75,
-               batch_size=5, on_progress=None):
+               batch_size=5, reasoning_effort=None, on_progress=None):
     """Run the same pipeline from the CLI or UI; report completed jobs per batch."""
     load_dotenv(ROOT / ".env")  # Existing environment variables take precedence.
     model = (model or os.getenv("OPENAI_MODEL") or "gpt-4.1-mini").strip()
+    reasoning_effort = (reasoning_effort or os.getenv("OPENAI_REASONING_EFFORT") or "").strip().lower() or None
     if not model:
         raise ValueError("Model must not be empty.")
+    if reasoning_effort not in {None, "low", "medium", "high"}:
+        raise ValueError("reasoning_effort must be one of: low, medium, high.")
     if not 0 <= min_score <= 100 or batch_size < 1:
         raise ValueError("min_score must be 0-100 and batch_size must be positive.")
     output_path = Path(output_path)
@@ -227,7 +246,8 @@ def run_filter(resume_path, jobs_path, output_path, *, model=None, min_score=75,
         with OpenAI(timeout=120.0, max_retries=3) as client:
             for start in range(0, len(jobs), batch_size):
                 batch = list(enumerate(jobs[start:start + batch_size], start=start))
-                assessments.extend(assess_batch(client, model, resume, batch))
+                assessments.extend(assess_batch(client, model, resume, batch,
+                                                reasoning_effort=reasoning_effort))
                 if on_progress:
                     on_progress(min(start + batch_size, len(jobs)), len(jobs))
 
@@ -251,11 +271,15 @@ def main():
     parser.add_argument("--model", default=os.getenv("OPENAI_MODEL") or "gpt-4.1-mini")
     parser.add_argument("--min-score", type=int, default=75)
     parser.add_argument("--batch-size", type=int, default=5)
+    parser.add_argument("--reasoning-effort", choices=("low", "medium", "high"),
+                        default=os.getenv("OPENAI_REASONING_EFFORT") or None,
+                        help="Optional OpenAI reasoning effort for supported models/endpoints.")
     args = parser.parse_args()
     try:
         selected = run_filter(
             args.resume, args.jobs, args.output, model=args.model,
             min_score=args.min_score, batch_size=args.batch_size,
+            reasoning_effort=args.reasoning_effort,
             on_progress=lambda done, total: print(f"Assessed {done}/{total} jobs."),
         )
     except ValueError as exc:

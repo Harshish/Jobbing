@@ -174,8 +174,12 @@ automatically, with a fresh version on every successful run.
 
 - `.env` is always loaded from the project root. Existing environment variables take
   precedence. Restart the web server after changing `.env`.
-- `OPENAI_MODEL` defaults to `gpt-4.1-mini`. `OPENAI_BASE_URL` can point to an
-  OpenAI-compatible endpoint supporting structured JSON-schema outputs.
+- `OPENAI_MODEL` defaults to `gpt-4.1-mini`.
+- `OPENAI_REASONING_EFFORT` is optional (`low`, `medium`, `high`) and is passed
+  straight to OpenAI chat completions for supported reasoning models/endpoints;
+  no LangChain layer is needed.
+- `OPENAI_BASE_URL` can point to an OpenAI-compatible endpoint supporting
+  structured JSON-schema outputs.
 - Default fit threshold: **75/100**. Explicit hard blockers are excluded.
 - Matches sort by **company tier → pay tier → benefits tier → resume fit**, descending.
   Earlier criteria always take precedence. Benefits cannot outweigh company/pay tiers.
