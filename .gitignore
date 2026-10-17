@@ -8,3 +8,4 @@ data/*
 !data/.gitkeep
 graphify-out/
 .streamlit/secrets.toml
+.DS_Store
