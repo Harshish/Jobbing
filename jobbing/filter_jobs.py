@@ -6,6 +6,7 @@ import csv
 import json
 import os
 from pathlib import Path
+import re
 import sys
 import xml.etree.ElementTree as ET
 from zipfile import BadZipFile, ZipFile
@@ -100,7 +101,7 @@ EXTRA_COLUMNS = [
 
 SPONSORSHIP_YES = (
     "visa sponsorship", "visa support", "work visa support", "sponsorship available",
-    "sponsorship provided", "can sponsor", "will sponsor", "we sponsor", "relocation and visa",
+    "sponsorship provided", "can sponsor", "will sponsor", "we sponsor visa", "we sponsor work visa", "relocation and visa",
 )
 SPONSORSHIP_NO = (
     "no visa sponsorship", "cannot sponsor", "can not sponsor", "unable to sponsor",
@@ -109,7 +110,13 @@ SPONSORSHIP_NO = (
     "must have work authorization", "must have the right to work",
     "must be authorized to work", "existing work authorization",
 )
-FULL_TIME_YES = ("full time", "full-time", "permanent")
+# Negation in the same sentence as "sponsor", e.g. "we do not offer visa sponsorship"
+# or "visa sponsorship or transfer is not possible".
+SPONSORSHIP_NEGATED = re.compile(
+    r"\b(?:no|not|cannot|can't|don't|doesn't|unable|without|won't)\b[^.;!?]{0,60}\bsponsor"
+    r"|\bsponsor\w*\b[^.;!?]{0,40}\b(?:not possible|not available|unavailable|not offered)\b"
+)
+FULL_TIME_YES = ("full time", "full-time", "fulltime", "permanent")
 
 
 def read_resume(path):
@@ -170,7 +177,7 @@ def assess_batch(client, model, resume, indexed_jobs, *, reasoning_effort=None):
 def visa_sponsorship_status(job):
     text = " ".join(str(job.get(field, "")) for field in
                     ("description", "llm_preference_reason", "llm_reason")).casefold()
-    if any(phrase in text for phrase in SPONSORSHIP_NO):
+    if any(phrase in text for phrase in SPONSORSHIP_NO) or SPONSORSHIP_NEGATED.search(text):
         return "no"
     if any(phrase in text for phrase in SPONSORSHIP_YES):
         return "yes"

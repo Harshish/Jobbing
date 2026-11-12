@@ -63,6 +63,16 @@ class FilterJobsTest(unittest.TestCase):
         self.assertEqual(app.visa_sponsorship_status({"description": "We offer visa sponsorship for this role."}), "yes")
         self.assertEqual(app.visa_sponsorship_status({"description": "Candidates must already have work authorization; we cannot sponsor visas."}), "no")
         self.assertEqual(app.visa_sponsorship_status({"description": "Python and SQL"}), "unknown")
+        for text in (
+            "Up to euro 90k. visa sponsorship or transfer is not possible.",
+            "Visa sponsorship is not available for this role.",
+            "We do not offer visa sponsorship, work permits, or relocation packages.",
+            "Unfortunately we don't offer visa sponsorships currently.",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(app.visa_sponsorship_status({"description": text}), "no")
+        self.assertEqual(app.visa_sponsorship_status({"description": "We sponsor work visas and the 30% ruling."}), "yes")
+        self.assertEqual(app.visa_sponsorship_status({"description": "We sponsoren je nieuwe toestel met €425."}), "unknown")
 
         assessments = [
             result(0, 90, company=3, pay=2, benefits=2),
@@ -80,6 +90,7 @@ class FilterJobsTest(unittest.TestCase):
     def test_full_time_signal_and_sorting(self):
         self.assertEqual(app.employment_type_status({"job_type": "Full-time"}), "full_time")
         self.assertEqual(app.employment_type_status({"employment_type": "Permanent"}), "full_time")
+        self.assertEqual(app.employment_type_status({"job_type": "fulltime"}), "full_time")
         self.assertEqual(app.employment_type_status({"job_type": "Contract"}), "other")
         self.assertEqual(app.employment_type_status({}), "unknown")
 
